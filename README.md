@@ -1,76 +1,133 @@
-# Scrape-together-old-photos
 
 
-Die Zeitkapsel-Community 🕰️🖼️
+# 📸 **Scrape-together-old-photos - Digital Time Capsule**
 
-Willkommen in der Zeitkapsel!
+## **🕰️ Welcome to the Time Capsule Community!**
 
-Unsere Community hat sich einem besonderen Projekt verschrieben: dem Erkunden, Sichern und Wiederentdecken alter Erinnerungen. Wir haben uns auf die Reise begeben, in den Tiefen vergessener Festplatten und unzähliger Ordner nach jenen verlorenen Augenblicken zu suchen, die im Laufe der Jahre beiseitegelegt wurden.
+We are on a mission to **rediscover and preserve old memories** by searching forgotten **hard drives, USB devices, and folders** for lost photos.
 
-📂 Tausende von Ordnern, zig Festplatten – Unser Abenteuer besteht darin, uns durch diesen digitalen Dschungel zu navigieren, um jene vergessenen Momente wiederzuentdecken.
+This repository provides a **Bash script** that automatically scans your **external storage devices**, extracts images, and organizes them **by year and month** based on metadata.
 
-📸 Fotos aus vergangenen Zeiten – Werden Sie Zeuge von verschwundenen Erinnerungen, lachenden Gesichtern und Orten, die Sie vielleicht nie gesehen haben. Jedes Foto erzählt eine eigene Geschichte.
+---
 
-🗂️ Sortieren und Selektieren – Wir wählen nicht nur die besten Momente aus, sondern organisieren sie auch in einer Art, die Sinn macht. In der Tat, ein wahrer Schatz ist nur dann wertvoll, wenn man ihn auch finden kann!
+## **🛠️ Features**
+✅ **Scans external drives & USB devices** for old photos
+✅ **Detects images** (`.jpg`, `.png`, `.gif`, `.tiff`, `.bmp`)
+✅ **Sorts images by year & month** based on file metadata
+✅ **Creates a log file** for tracking scanned files
 
-Teilnehmen und Teilen!
-Jeder ist eingeladen, seinen eigenen verstaubten Datenträger mitzubringen und sich uns auf dieser spannenden Reise anzuschließen. Wer weiß, welche Schätze Sie in Ihren alten Daten finden werden?
+---
 
-# Ubuntu Setup und Datenkopier-Guide
+# 🚀 **Script: `scrape_photos.sh`**
 
-In diesem Repository finden Sie Skripte und Anweisungen, die Ihnen helfen, Ihr Ubuntu-System nach einer frischen Installation einzurichten und Daten von einem USB-Gerät zu kopieren.
+### **📂 How It Works:**
+- The script **searches all mounted drives** for image files.
+- It **copies** them into a **central backup folder** sorted by **year and month**.
+- A **log file** keeps track of all extracted images.
 
-## Inhaltsverzeichnis
+---
 
-- [Post-Installation von Ubuntu](#post-installation-von-ubuntu)
-- [USB-Gerät finden](#usb-gerät-finden)
-- [Datenkopie-Skript](#datenkopie-skript)
+### **📜 Bash Script (`scrape_photos.sh`)**
 
-## Post-Installation von Ubuntu
-
-Nachdem Sie Ubuntu installiert haben, sollten Sie Ihr System zuerst aktualisieren und dann einige grundlegende Programme installieren:
+Save the following script as `scrape_photos.sh`, **make it executable**, and run it.
 
 ```bash
-# System aktualisieren
-sudo apt update && sudo apt upgrade -y
+#!/bin/bash
 
-# Notwendige Programme installieren
-sudo apt install pv tree rsync -y
+# Scrape-together-old-photos - Find and recover old photos from external storage
+# Author: TimInTech | Version: 1.0
+# Description: This script scans connected hard drives & USB devices for old photos and copies them to a central "Recovered" folder.
+
+### 🔍 STEP 1: Define Directories ###
+BACKUP_DIR="$HOME/Recovered"
+LOG_FILE="$BACKUP_DIR/scrape_log.txt"
+
+# Create backup folder if it doesn't exist
+mkdir -p "$BACKUP_DIR"
+
+### 📂 STEP 2: Find All External Drives ###
+echo "[INFO] Searching for connected hard drives & USB devices..." | tee -a "$LOG_FILE"
+MOUNT_POINTS=$(lsblk -o MOUNTPOINT,TYPE | grep part | awk '{print $1}')
+
+if [ -z "$MOUNT_POINTS" ]; then
+    echo "[WARNING] No external drives found!" | tee -a "$LOG_FILE"
+    exit 1
+fi
+
+### 🖼️ STEP 3: Search for Photos & Copy Them ###
+echo "[INFO] Scanning the following drives: $MOUNT_POINTS" | tee -a "$LOG_FILE"
+
+for DRIVE in $MOUNT_POINTS; do
+    echo "[INFO] Scanning $DRIVE for image files..." | tee -a "$LOG_FILE"
+
+    find "$DRIVE" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.gif" -o -iname "*.tiff" -o -iname "*.bmp" \) | while read -r FILE; do
+        # Extract metadata (year and month)
+        YEAR=$(stat -c %y "$FILE" | cut -d'-' -f1)
+        MONTH=$(stat -c %y "$FILE" | cut -d'-' -f2)
+
+        # Create target folder
+        TARGET_DIR="$BACKUP_DIR/$YEAR/$MONTH"
+        mkdir -p "$TARGET_DIR"
+
+        # Copy file
+        cp -n "$FILE" "$TARGET_DIR"
+        echo "[OK] Saved: $FILE → $TARGET_DIR" | tee -a "$LOG_FILE"
+    done
+done
+
+echo "[DONE] All images have been saved to: $BACKUP_DIR" | tee -a "$LOG_FILE"
 ```
 
-## USB-Gerät finden
+---
 
-Um angeschlossene USB-Geräte aufzulisten, können Sie den folgenden Befehl verwenden:
+## **📖 Installation & Usage**
 
+### 🔹 **1. Download the Script**
 ```bash
-# USB-Geräte auflisten
+git clone https://github.com/TimInTech/Scrape-together-old-photos.git
+cd Scrape-together-old-photos
+chmod +x scrape_photos.sh
+```
+
+### 🔹 **2. Run the Script**
+```bash
+./scrape_photos.sh
+```
+
+### 🔹 **3. View the Results**
+- 📂 Images are stored in: `~/Recovered/Year/Month/`
+- 📄 Log file: `scrape_log.txt`
+
+---
+
+## 🔧 **Additional Commands**
+
+### 📌 **View Logs**
+Check the scan log to see which files were processed:
+```bash
+cat ~/Recovered/scrape_log.txt
+```
+
+### 📌 **Delete Duplicate Files**
+If you want to remove duplicate images, use `fdupes`:
+```bash
+sudo apt install fdupes
+fdupes -rd ~/Recovered
+```
+
+### 📌 **Manually List External Drives**
+```bash
 lsblk | grep -i usb
 ```
 
-## Datenkopie-Skript
-
-Im Repository finden Sie ein Skript namens `kopieren_von_usb.sh`. Mit diesem Skript können Sie Daten von einem USB-Gerät zu einem Zielverzeichnis auf Ihrem Computer kopieren.
-
-Bevor Sie das Skript ausführen, sollten Sie sicherstellen, dass die Pfade im Skript korrekt sind und dass Sie dem Skript Ausführungsrechte gegeben haben:
-
+### 📌 **Delete the Backup Folder (If Needed)**
 ```bash
-chmod +x kopieren_von_usb.sh
+rm -rf ~/Recovered
 ```
-
-Zum Ausführen des Skripts:
-
-```bash
-./kopieren_von_usb.sh
-```
-
-**Hinweis:** Testen Sie dieses Skript zunächst mit einem kleinen Daten-Set, um sicherzustellen, dass alles wie erwartet funktioniert.
 
 ---
 
-## Beitrag
+## **🤝 Contribute**
+🔹 Found an issue? **Report it!**
+🔹 Want to improve the script? **Submit a Pull Request!**
 
-Falls Sie Verbesserungsvorschläge oder Anmerkungen zu den Skripten oder Anweisungen haben, zögern Sie nicht, einen Pull Request zu erstellen oder ein Issue zu öffnen.
-
----
-
-Ich hoffe, dass Ihnen dieser `README.md`-Inhalt gefällt. Sie können ihn nach Belieben bearbeiten oder erweitern.
